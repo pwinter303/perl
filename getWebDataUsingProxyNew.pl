@@ -6,7 +6,17 @@ use warnings;
 use WWW::FreeProxyListsCom;
 use WWW::Mechanize;
 use Data::Dumper;
-require db.pl;
+use Config::Simple;
+
+require "db.pl";
+
+my %Config;
+Config::Simple->import_from('db.config', \%Config);
+
+my $dbh = connectToDatabase(%Config);
+
+getProxyURLsAndSaveToDatabase(999,0,1,1,$dbh);
+
 
 ####################################################################################
 sub getProxyURLsAndSaveToDatabase{
@@ -25,10 +35,28 @@ sub addProxyURLsToDatabase{
     my $dbh = shift @_;
 
     foreach my $proxyURL (keys %{$refProxyURLs}) {
-        print "ProxyURL:$proxyURL\n";
-        #see if it exists
-        #add it if it doesnt
+
+        my $sql = "select count(*) as Count from proxy where proxyURL = '$proxyURL'";
+        my $arr_ref = getDataFromDatabaseReturnAoH($dbh, $sql);
+        my $count = 0;
+        foreach my $row (@$arr_ref) {
+            $count = $row->{Count};
         }
+        print "ProxyURL:$proxyURL\tcount:$count\n";
+        unless ($count){
+            $sql = "insert into proxy (proxyURL, currPeriod_cummulative_good, currPeriod_cummulative_bad, currPeriod_bad,
+                    currPeriod_good, currPeriod_total_seconds, prevPeriod_good, prevPeriod_bad)
+                    VALUES
+                    ('$proxyURL',0,0,0,0,0,0,0)";
+            #print "SQL:$sql\n";
+            my $affected_rows = actionQueryForDatabase($dbh, $sql);
+            print "inserted rows: $affected_rows\n";
+        }
+
+    }
+    ## not necessary since autocommit is enabled.
+    ###commitDatabase($dbh);
+
 }
 
 
@@ -37,7 +65,7 @@ sub addProxyURLsToDatabase{
 ####################################################################################
 sub getTestAndSaveProxyURLs{    
     (my $max_proxies, my $skipFile, my $skipWeb, my $skipTempFile) = @_;
- `
+
     my %proxyURLs = buildFullListOfProxyURLs($max_proxies,$skipFile, $skipWeb, $skipTempFile);
 
     filterProxyURLs(\%proxyURLs); 
