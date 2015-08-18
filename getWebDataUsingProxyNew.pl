@@ -6,27 +6,29 @@ use warnings;
 use WWW::FreeProxyListsCom;
 use WWW::Mechanize;
 use Data::Dumper;
+require db.pl;
+
+####################################################################################
+sub getProxyURLsAndSaveToDatabase{
+    (my $max_proxies, my $skipFile, my $skipWeb, my $skipTempFile = 1, my $dbh) = @_;
+
+    my %proxyURLs = buildFullListOfProxyURLs($max_proxies,$skipFile, $skipWeb, $skipTempFile);
+
+    addProxyURLsToDatabase(\%proxyURLs, $dbh);
+
+}
 
 
 ####################################################################################
-sub getProxyURLs{    
-    (my $max_proxies, my $skipFile, my $skipWeb, my $skipTempFile = 1) = @_;
+sub addProxyURLsToDatabase{
+    my $refProxyURLs = shift @_;
+    my $dbh = shift @_;
 
-    my %proxyURLs = buildFullListOfProxyURLs($max_proxies,$skipFile, $skipWeb, $skipTempFile);
-    my $deletedProxyURLs = 0;
-   #### remove the URLs with no successes
-    foreach my $URL (keys %proxyURLs) {
-      my @fields = @{$proxyURLs{$URL}};
-	if ($fields[1] < 1){
-	        delete $proxyURLs{$URL};  #### delete if it hasn’t had any successful hits 
-	        $deletedProxyURLs++;
-        #print "Deleting: $URL Successes:$fields[1]\n";
-      } else {
-		   print "Keeping: $URL  Successes:$fields[1]\n";
-	}
-    }
-
-    return %proxyURLs;
+    foreach my $proxyURL (keys %{$refProxyURLs}) {
+        print "ProxyURL:$proxyURL\n";
+        #see if it exists
+        #add it if it doesnt
+        }
 }
 
 
