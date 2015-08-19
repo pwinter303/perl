@@ -15,14 +15,14 @@ Config::Simple->import_from('db.config', \%Config);
 
 my $dbh = connectToDatabase(%Config);
 
-#addProxysTestNew($dbh);
+#addProxysThenTestNewlyAdded($dbh);
 getProxyURLsForUse($dbh);
 
 ###getProxyURLsAndSaveToDatabase(999,0,1,1,$dbh);
 
 
 ####################################################################################
-sub addProxysTestNew{
+sub addProxysThenTestNewlyAdded{
     my $dbh = shift @_;
     getProxyURLsAndSaveToDatabase(9990,0,1,1,$dbh); #maxProxies, SkipFile, SkipWeb, SkipTemp
     test($dbh, 0);
@@ -30,7 +30,7 @@ sub addProxysTestNew{
 }
 
 ####################################################################################
-sub addProxysTestAll{
+sub addProxysThenTestAll{
     my $dbh = shift @_;
     getProxyURLsAndSaveToDatabase(9990,0,1,1,$dbh);
     test($dbh, 1);
@@ -383,7 +383,7 @@ sub getWebPageDetail {
     my $success = 0;
     my $mech1 = WWW::Mechanize->new( autocheck => 0, timeout=>$timeout);
     if ($proxyURL){
-        $mech1->proxy(['http', 'ftp'], $proxyURL);
+        $mech1->proxy(['http', 'ftp'], $proxyURL);   #specifies to use proxy for all http and ftp requests
     }
     $mech1->agent_alias("Windows Mozilla");    ### flips it to MOZILLA
     my $result = $mech1->get($url);
