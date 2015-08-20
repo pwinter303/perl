@@ -15,7 +15,7 @@ Config::Simple->import_from('db.config', \%Config);
 
 my $dbh = connectToDatabase(%Config);
 
-#addProxysThenTestNewlyAdded($dbh);
+addProxysThenTestNewlyAdded($dbh);
 getProxyURLsForUse($dbh);
 
 ###getProxyURLsAndSaveToDatabase(999,0,1,1,$dbh);
@@ -119,7 +119,7 @@ sub buildFullListOfProxyURLs{
 
     #### Get the Master Proxy File
     if (!($skipFile)){
-        my $file = "ProxyURLs.csv";
+        my $file = "../ProxyURLs.csv";
         print "\n\nGetting ProxyURLs from the MasterFile:$file\n";
         getProxysFromFile(\%proxyURLs, $file);
     }
@@ -205,7 +205,12 @@ sub NEWtestProxyURLs{
         print "update $affected_rows row.. moving currPeriod to priorPeriod\n";
 
         ### FixMe: Update CurrPeriod with Test Results
-        $sql = "update proxy set currPeriod_good = $total_good,  currPeriod_bad = $total_bad where proxyURL = '$proxyURL'";
+        $sql = "update proxy set currPeriod_good = $total_good,  
+                                 currPeriod_bad = $total_bad,
+                                 currPeriod_total_seconds = $total_seconds,
+                                 currPeriod_cummulative_good = $cummulative_good,
+                                 currPeriod_cummulative_bad = $cummulative_bad
+                                where proxyURL = '$proxyURL'";
         $affected_rows = actionQueryForDatabase($dbh, $sql);
         print "update $affected_rows row.. with results from the test\n";
 
@@ -228,8 +233,8 @@ sub NEWtestProxy{
     for ($i = 0; $i <= $attempts; $i++) {
         my $now = time;
         ### STUB FIXME:
-        ###($success,$content) = getWebPageDetail($url,$timeout,$proxyURL);
-        ($success,$content) = STUBgetWebPageDetail($url,$timeout,$proxyURL);
+        ($success,$content) = getWebPageDetail($url,$timeout,$proxyURL);
+        ###($success,$content) = STUBgetWebPageDetail($url,$timeout,$proxyURL);
         my $seconds = time - $now;
         $total_seconds += $seconds;
         if ($success) {
