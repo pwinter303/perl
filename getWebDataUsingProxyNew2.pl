@@ -24,7 +24,11 @@ getProxyURLsForUse($dbh);
 ###############################################################################TEST
 sub addProxysThenTestNewlyAdded{
     my $dbh = shift @_;
+<<<<<<< HEAD
     getProxyURLsAndSaveToDatabase(9990,1,0,1,$dbh); #maxProxies, SkipFile, SkipWeb, SkipTemp
+=======
+    getProxyURLsAndSaveToDatabase(9990,0,1,1,$dbh); #maxProxies, SkipFile, SkipWeb, SkipTemp
+>>>>>>> e7175eeb57739aadd0a0411cb2ddb4eee3d9d141
     test($dbh, 0);
 
 }
@@ -84,6 +88,10 @@ sub test{
     if ($testAll){
         $sql = "select proxyURL from proxy";  ## override sql if testing all
     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> e7175eeb57739aadd0a0411cb2ddb4eee3d9d141
     my $arr_ref = getDataFromDatabaseReturnAoH($dbh, $sql);
     foreach my $row (@$arr_ref) {
         my $proxyURL = $row->{proxyURL};
@@ -192,7 +200,11 @@ sub NEWtestProxyURLs{
     my $cummulative_bad = 0;
     my $sql = "";
     my $affected_rows = 0;
+<<<<<<< HEAD
     my $i = 0;
+=======
+
+>>>>>>> e7175eeb57739aadd0a0411cb2ddb4eee3d9d141
     foreach my $proxyURL (keys %{$refProxyURLs}) {
         ($total_good, $total_bad, $total_seconds, $cummulative_good, $cummulative_bad) = NEWtestProxy(8, $proxyURL, 6, 'http://www.google.com');
 
@@ -212,11 +224,14 @@ sub NEWtestProxyURLs{
                                 where proxyURL = '$proxyURL'";
         $affected_rows = actionQueryForDatabase($dbh, $sql);
         print "update $affected_rows row.. with results from the test\n";
+<<<<<<< HEAD
         $i++;
         unless ($i % 10){
             my $t = localtime;
             print "completed $i $t\n";
         }
+=======
+>>>>>>> e7175eeb57739aadd0a0411cb2ddb4eee3d9d141
 
     }
 }
@@ -337,7 +352,11 @@ sub getProxysFromFile{
     print "Retrieved $recs from the Proxy File:$file\n";
 }
 
+<<<<<<< HEAD
 ###################################################################################
+=======
+####################################################################################
+>>>>>>> e7175eeb57739aadd0a0411cb2ddb4eee3d9d141
 sub getProxysFromWeb {
     (my $max_proxies, my $refProxyHash) = @_;
 
@@ -376,7 +395,11 @@ sub getProxysFromWeb {
 
 
 
+<<<<<<< HEAD
 ###################################################################################
+=======
+####################################################################################
+>>>>>>> e7175eeb57739aadd0a0411cb2ddb4eee3d9d141
 sub STUBgetWebPageDetail {
     my $content = "HELLERRRR";
     my $success = 1;
