@@ -337,7 +337,7 @@ sub getProxysFromFile{
     print "Retrieved $recs from the Proxy File:$file\n";
 }
 
-####################################################################################
+###################################################################################
 sub getProxysFromWeb {
     (my $max_proxies, my $refProxyHash) = @_;
 
