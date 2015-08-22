@@ -21,7 +21,7 @@ getProxyURLsForUse($dbh);
 ###getProxyURLsAndSaveToDatabase(999,0,1,1,$dbh);
 
 
-###############################################################################TeST
+###############################################################################TST
 sub addProxysThenTestNewlyAdded{
     my $dbh = shift @_;
     getProxyURLsAndSaveToDatabase(9990,1,0,1,$dbh); #maxProxies, SkipFile, SkipWeb, SkipTemp
