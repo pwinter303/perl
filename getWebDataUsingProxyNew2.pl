@@ -11,8 +11,8 @@ use Config::Simple;
 require "db.pl";
 
 
-#initialize();
-#addProxysThenTestNewlyAdded($dbh);
+###my $dbh = initialize();
+###addProxysThenTestNewlyAdded($dbh);
 #getProxyURLsForUse($dbh);
 
 ###getProxyURLsAndSaveToDatabase(999,0,1,1,$dbh);
@@ -80,6 +80,8 @@ sub getProxyURLsForUse{
             (currPeriod_total_seconds / (currPeriod_bad+currPeriod_good)) as AvgSecs
             from proxy where currPeriod_good > 0 order by SuccessRatio";
     }
+    
+    ##FixMe: If there are still arent enough.. pull based on priorPeriod
     $arr_ref = getDataFromDatabaseReturnAoH($dbh, $sql);
     foreach my $row (@$arr_ref) {
         my $proxyURL = $row->{proxyURL};
@@ -183,7 +185,7 @@ sub addProxyURLsToDatabase{
         foreach my $row (@$arr_ref) {
             $count = $row->{Count};
         }
-        print "ProxyURL:$proxyURL\tcount:$count\n";
+        ##print "ProxyURL:$proxyURL\tcount:$count\n";
         unless ($count){
             $sql = "insert into proxy (proxyURL, currPeriod_cummulative_good, currPeriod_cummulative_bad, currPeriod_bad,
                     currPeriod_good, currPeriod_total_seconds, prevPeriod_good, prevPeriod_bad)
@@ -191,7 +193,7 @@ sub addProxyURLsToDatabase{
                     ('$proxyURL',0,0,0,0,0,0,0)";
             #print "SQL:$sql\n";
             my $affected_rows = actionQueryForDatabase($dbh, $sql);
-            print "inserted rows: $affected_rows\n";
+            print "ProxyURL:$proxyURL\tinserted $affected_rows row\n";
         }
 
     }
@@ -221,12 +223,12 @@ sub NEWtestProxyURLs{
 
         print "$proxyURL -> GOOD:$total_good, BAD:$total_bad, SECS:$total_seconds, CUMM_GOOD:$cummulative_good, CUMM_BAD:$cummulative_bad \n";
 
-        ### FixMe: Add CurrPeriod to Prior Period
+        ### Move CurrPeriod to Prior Period
         $sql = "update proxy set prevPeriod_good = prevPeriod_good + currPeriod_good where proxyURL = '$proxyURL'";
         $affected_rows = actionQueryForDatabase($dbh, $sql);
         print "update $affected_rows row.. moving currPeriod to priorPeriod\n";
 
-        ### FixMe: Update CurrPeriod with Test Results
+        ### Update CurrPeriod with Test Results
         $sql = "update proxy set currPeriod_good = $total_good,  
                                  currPeriod_bad = $total_bad,
                                  currPeriod_total_seconds = $total_seconds,
@@ -259,8 +261,8 @@ sub NEWtestProxy{
     my $i=0;
     for ($i = 0; $i <= $attempts; $i++) {
         my $now = time;
-        ### STUB FIXME:
         ($success,$content) = getWebPageDetail($url,$timeout,$proxyURL);
+        ### STUB for testing
         ###($success,$content) = STUBgetWebPageDetail($url,$timeout,$proxyURL);
         my $seconds = time - $now;
         $total_seconds += $seconds;
@@ -301,7 +303,6 @@ sub getProxysFromTempFile{
 		my $url = 'http://' . $line;
 		if ( ($url) and ($url =~ m/http/) ){
 		    ##print "ADDING: $url\n";
-		    ##FixMe: I don think this is needed since the zeroStats is called before the test run...
 		    my @fields = (0,0,0,0,0);  # 0=Attempts, 1=Successes, 2=Failures, 3=Ttl Seconds, 4=Avg Seconds
 		    $refProxyHash->{$url} = [@fields];
 		}
@@ -327,8 +328,6 @@ sub getProxysFromFile{
 
     my @fields = ();
     my $recs = 0;
-
-    ##FixMe: Instead of having temp should this be used to grab the temp files????? YES....  Changes Required:  Temp File wont have http... Temp file wont have stats (so cant split)
 
     if (-e $file){
         open (IN1, "$file") ||die "can't open input $file";
@@ -426,7 +425,7 @@ sub getZeeWebPage{
     until ($success){
         $proxiesTried++;
         if ($proxiesTried > 2){
-            #### HACK HACK HACK
+            #### HACK HACK HACK  FixMe: Call w/o Proxy... so at least data is retreieved
             $success = 1;
             $content = "bad URL? tried more than a dozen times to access it but no good\n";
             last;
@@ -436,7 +435,6 @@ sub getZeeWebPage{
         #####print "url:$url\tproxy:$proxyURL\tSuccess:$success\tAttempts:$i\n";
         for ($i = 0; $i <= $attempts; $i++) {
             my $now = time;
-            ### STUB FIXME:
             ($success,$content) = getWebPageDetail($url,$timeout,$proxyURL);
             my $seconds = time - $now;
             $total_seconds += $seconds;
@@ -493,8 +491,8 @@ sub saveStats {
         }
     }
     
-    ### FixMe: Update CurrPeriod with Test Results
-     $sql = "update proxy set currPeriod_good = currPeriod_good + $total_good,
+    ### Update CurrPeriod with Stats
+        $sql = "update proxy set currPeriod_good = currPeriod_good + $total_good,
             currPeriod_bad = currPeriod_bad + $total_bad,
             currPeriod_total_seconds = currPeriod_total_seconds + $total_seconds,
             currPeriod_cummulative_good = $cummulative_good,
