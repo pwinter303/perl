@@ -11,9 +11,9 @@ use Config::Simple;
 require "db.pl";
 
 
-initialize();
-addProxysThenTestNewlyAdded($dbh);
-getProxyURLsForUse($dbh);
+#initialize();
+#addProxysThenTestNewlyAdded($dbh);
+#getProxyURLsForUse($dbh);
 
 ###getProxyURLsAndSaveToDatabase(999,0,1,1,$dbh);
 
@@ -417,12 +417,19 @@ sub getZeeWebPage{
     my $cummulative_bad = 0;
     
     my $i=0;
+    my $proxiesTried = 0;
     my $success = 0;
     my $content="";
     
-    until ($success)
-    my $proxyURL = getSingleProxyURL($dbh);
-
+    until ($success){
+        $proxiesTried++;
+        if ($proxiesTried > 2){
+            #### HACK HACK HACK
+            $success = 1;
+            $content = "bad URL? tried more than a dozen times to access it but no good\n";
+            last;
+        }
+        my $proxyURL = getSingleProxyURL($dbh);
         for ($i = 0; $i <= $attempts; $i++) {
             my $now = time;
             ### STUB FIXME:
@@ -439,13 +446,14 @@ sub getZeeWebPage{
                 $cummulative_good = 0;
                 $cummulative_bad++;
             }
+            print "url:$url\tproxy:$proxyURL\tSuccess:$success\tAttempts:$i\n";
             #print "$proxyURL -> GOOD:$total_good, BAD:$total_bad, SECS:$total_seconds, CUMM_GOOD:$cummulative_good, CUMM_BAD:$cummulative_bad \n";
         } #end of For LOOP
     ## save proxy stats
     saveStats($dbh, $proxyURL, $total_good, $total_bad, $total_seconds, $cummulative_good, $cummulative_bad);
-    }
+    } #end of UNTIL loop
 
-    return ($status, $content);
+    return ($success, $content);
     
 }
 
@@ -460,20 +468,24 @@ sub saveStats {
     my $cummulative_bad = shift @_;
     my $sql = "";
     
+    my $cummulative_good_from_db = 0;
+    my $cummulative_bad_from_db = 0;
+    
     $sql = "select currPeriod_cummulative_good, currPeriod_cummulative_bad from proxy where proxyURL = '$proxyURL'";
     my $arr_ref = getDataFromDatabaseReturnAoH($dbh, $sql);
 
     foreach my $row (@$arr_ref) {
-        my $cummulative_good_from_db = $row->{currPeriod_cummulative_good};
-        my $cummulative_badfrom_db = $row->{currPeriod_cummulative_bad};
+        $cummulative_good_from_db = $row->{currPeriod_cummulative_good};
+        $cummulative_bad_from_db = $row->{currPeriod_cummulative_bad};
     }
     
     ## if we found more good (or bad) cummulative... add them... if not the cummulative_ buckets passed to function will be saved to the db
-    if (($cummulative_good_from_db) and ($cummulative_good){
+    if (($cummulative_good_from_db) and ($cummulative_good)){
         $cummulative_good += $cummulative_good_from_db;
     } else {
-        if (($cummulative_bad_from_db) and ($cummulative_bad){
+        if (($cummulative_bad_from_db) and ($cummulative_bad)){
             $cummulative_bad += $cummulative_bad_from_db;
+        }
     }
     
     ### FixMe: Update CurrPeriod with Test Results
@@ -483,7 +495,7 @@ sub saveStats {
             currPeriod_cummulative_good = $cummulative_good,
             currPeriod_cummulative_bad = $cummulative_bad
             where proxyURL = '$proxyURL' ";
-    $affected_rows = actionQueryForDatabase($dbh, $sql);
+    my $affected_rows = actionQueryForDatabase($dbh, $sql);
     print "update $affected_rows row.. with results from the test\n";
 
 }
@@ -506,7 +518,10 @@ sub getWebPageDetail {
     } else {
         $success = 0;
     }
+    #print Dumper($result);
+    #die;
 	return ($success,  $content);
+    
 }
 
 
