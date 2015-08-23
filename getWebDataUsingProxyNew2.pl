@@ -78,7 +78,7 @@ sub getProxyURLsForUse{
     $sql = "select proxyURL,  currPeriod_cummulative_good, currPeriod_cummulative_bad,
             (currPeriod_good / (currPeriod_bad+currPeriod_good)) as SuccessRatio,
             (currPeriod_total_seconds / (currPeriod_bad+currPeriod_good)) as AvgSecs
-            from proxy where currPeriod_cummulative_good > 0 order by SuccessRatio";
+            from proxy where currPeriod_good > 0 order by SuccessRatio";
     }
     $arr_ref = getDataFromDatabaseReturnAoH($dbh, $sql);
     foreach my $row (@$arr_ref) {
@@ -421,6 +421,8 @@ sub getZeeWebPage{
     my $success = 0;
     my $content="";
     
+    
+    
     until ($success){
         $proxiesTried++;
         if ($proxiesTried > 2){
@@ -430,6 +432,8 @@ sub getZeeWebPage{
             last;
         }
         my $proxyURL = getSingleProxyURL($dbh);
+        print "this is the proxyURL: $proxyURL";
+        #####print "url:$url\tproxy:$proxyURL\tSuccess:$success\tAttempts:$i\n";
         for ($i = 0; $i <= $attempts; $i++) {
             my $now = time;
             ### STUB FIXME:
@@ -440,6 +444,7 @@ sub getZeeWebPage{
                 $total_good++;
                 $cummulative_bad = 0;
                 $cummulative_good++;
+                ####print "this is the content" . $content;
                 last;
             } else {
                 $total_bad++;
@@ -489,9 +494,9 @@ sub saveStats {
     }
     
     ### FixMe: Update CurrPeriod with Test Results
-     $sql = "update proxy set currPeriod_good = $total_good,
-            currPeriod_bad = $total_bad,
-            currPeriod_total_seconds = $total_seconds,
+     $sql = "update proxy set currPeriod_good = currPeriod_good + $total_good,
+            currPeriod_bad = currPeriod_bad + $total_bad,
+            currPeriod_total_seconds = currPeriod_total_seconds + $total_seconds,
             currPeriod_cummulative_good = $cummulative_good,
             currPeriod_cummulative_bad = $cummulative_bad
             where proxyURL = '$proxyURL' ";
