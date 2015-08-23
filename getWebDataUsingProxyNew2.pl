@@ -10,18 +10,23 @@ use Config::Simple;
 
 require "db.pl";
 
-my %Config;
-Config::Simple->import_from('db.config', \%Config);
 
-my $dbh = connectToDatabase(%Config);
-
+initialize();
 addProxysThenTestNewlyAdded($dbh);
 getProxyURLsForUse($dbh);
 
 ###getProxyURLsAndSaveToDatabase(999,0,1,1,$dbh);
 
+##################################################################################
+sub initialize{
+    my %Config;
+    Config::Simple->import_from('db.config', \%Config);
+    my $dbh = connectToDatabase(%Config);
+    return $dbh;
+}
 
-###############################################################################TST
+
+##################################################################################
 sub addProxysThenTestNewlyAdded{
     my $dbh = shift @_;
     getProxyURLsAndSaveToDatabase(9990,1,0,1,$dbh); #maxProxies, SkipFile, SkipWeb, SkipTemp
@@ -34,6 +39,24 @@ sub addProxysThenTestAll{
     my $dbh = shift @_;
     getProxyURLsAndSaveToDatabase(9990,0,1,1,$dbh);
     test($dbh, 1);
+}
+
+####################################################################################
+sub getSingleProxyURL{
+    my $dbh = shift @_;
+    my %proxyURL = getProxyURLsForUse($dbh);
+    my $proxyURL = choose( keys %proxyURL );
+    return $proxyURL;
+}
+
+####################################################################################
+sub choose {
+    my $count = 0;
+    my $result = undef;
+    for( @_ ) {
+        $result = $_ if rand() < 1 / ++$count;
+    }
+    $result;
 }
 
 ####################################################################################
@@ -209,13 +232,13 @@ sub NEWtestProxyURLs{
                                  currPeriod_total_seconds = $total_seconds,
                                  currPeriod_cummulative_good = $cummulative_good,
                                  currPeriod_cummulative_bad = $cummulative_bad
-                                where proxyURL = '$proxyURL'";
+                                where proxyURL = '$proxyURL' ";
         $affected_rows = actionQueryForDatabase($dbh, $sql);
         print "update $affected_rows row.. with results from the test\n";
         $i++;
         unless ($i % 10){
             my $t = localtime;
-            print "completed $i $t\n";
+            print "\ncompleted $i $t\n\n";
         }
 
     }
@@ -382,6 +405,87 @@ sub STUBgetWebPageDetail {
     my $success = 1;
     sleep 1;
 	return ($success,  $content);
+}
+
+####################################################################################
+sub getZeeWebPage{
+    (my $url, my $timeout, my $attempts, my $dbh) = @_;
+    my $total_good = 0;
+    my $total_bad = 0;
+    my $total_seconds = 0;
+    my $cummulative_good = 0;
+    my $cummulative_bad = 0;
+    
+    my $i=0;
+    my $success = 0;
+    my $content="";
+    
+    until ($success)
+    my $proxyURL = getSingleProxyURL($dbh);
+
+        for ($i = 0; $i <= $attempts; $i++) {
+            my $now = time;
+            ### STUB FIXME:
+            ($success,$content) = getWebPageDetail($url,$timeout,$proxyURL);
+            my $seconds = time - $now;
+            $total_seconds += $seconds;
+            if ($success) {
+                $total_good++;
+                $cummulative_bad = 0;
+                $cummulative_good++;
+                last;
+            } else {
+                $total_bad++;
+                $cummulative_good = 0;
+                $cummulative_bad++;
+            }
+            #print "$proxyURL -> GOOD:$total_good, BAD:$total_bad, SECS:$total_seconds, CUMM_GOOD:$cummulative_good, CUMM_BAD:$cummulative_bad \n";
+        } #end of For LOOP
+    ## save proxy stats
+    saveStats($dbh, $proxyURL, $total_good, $total_bad, $total_seconds, $cummulative_good, $cummulative_bad);
+    }
+
+    return ($status, $content);
+    
+}
+
+####################################################################################
+sub saveStats {
+    my $dbh = shift @_;
+    my $proxyURL = shift @_;
+    my $total_good = shift @_;
+    my $total_bad = shift @_;
+    my $total_seconds = shift @_;
+    my $cummulative_good = shift @_;
+    my $cummulative_bad = shift @_;
+    my $sql = "";
+    
+    $sql = "select currPeriod_cummulative_good, currPeriod_cummulative_bad from proxy where proxyURL = '$proxyURL'";
+    my $arr_ref = getDataFromDatabaseReturnAoH($dbh, $sql);
+
+    foreach my $row (@$arr_ref) {
+        my $cummulative_good_from_db = $row->{currPeriod_cummulative_good};
+        my $cummulative_badfrom_db = $row->{currPeriod_cummulative_bad};
+    }
+    
+    ## if we found more good (or bad) cummulative... add them... if not the cummulative_ buckets passed to function will be saved to the db
+    if (($cummulative_good_from_db) and ($cummulative_good){
+        $cummulative_good += $cummulative_good_from_db;
+    } else {
+        if (($cummulative_bad_from_db) and ($cummulative_bad){
+            $cummulative_bad += $cummulative_bad_from_db;
+    }
+    
+    ### FixMe: Update CurrPeriod with Test Results
+     $sql = "update proxy set currPeriod_good = $total_good,
+            currPeriod_bad = $total_bad,
+            currPeriod_total_seconds = $total_seconds,
+            currPeriod_cummulative_good = $cummulative_good,
+            currPeriod_cummulative_bad = $cummulative_bad
+            where proxyURL = '$proxyURL' ";
+    $affected_rows = actionQueryForDatabase($dbh, $sql);
+    print "update $affected_rows row.. with results from the test\n";
+
 }
 
 ####################################################################################
