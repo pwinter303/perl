@@ -426,12 +426,13 @@ sub getZeeWebPage{
         $proxiesTried++;
         if ($proxiesTried > 2){
             #### HACK HACK HACK  FixMe: Call w/o Proxy... so at least data is retreieved
-            $success = 1;
-            $content = "bad URL? tried more than a dozen times to access it but no good\n";
+            ($success,$content) = getWebPageDetail($url,$timeout,'');  ### set proxyURL to '' to force call w/o proxy
+            #$success = 1;
+            #$content = "bad URL? tried more than a dozen times to access it but no good\n";
             last;
         }
         my $proxyURL = getSingleProxyURL($dbh);
-        print "this is the proxyURL: $proxyURL";
+        #####print "this is the proxyURL: $proxyURL";
         #####print "url:$url\tproxy:$proxyURL\tSuccess:$success\tAttempts:$i\n";
         for ($i = 0; $i <= $attempts; $i++) {
             my $now = time;
@@ -449,7 +450,7 @@ sub getZeeWebPage{
                 $cummulative_good = 0;
                 $cummulative_bad++;
             }
-            print "url:$url\tproxy:$proxyURL\tSuccess:$success\tAttempts:$i\n";
+            print "\nurl:$url\tproxy:$proxyURL\tSuccess:$success\tAttempts:$i\n";
             #print "$proxyURL -> GOOD:$total_good, BAD:$total_bad, SECS:$total_seconds, CUMM_GOOD:$cummulative_good, CUMM_BAD:$cummulative_bad \n";
         } #end of For LOOP
     ## save proxy stats
@@ -526,6 +527,7 @@ sub getWebPageDetail {
 	return ($success,  $content);
     
 }
+
 
 
 
