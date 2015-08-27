@@ -6,13 +6,20 @@ use Data::Dumper;
 #### Credit to: hbd in PerlMonks. Page: http://www.perlmonks.org/?node_id=1031825
 
 my $outputFileName = "YahooResults.csv";
+my @arrFiles = qw/Yahoo-IndustryInfo.csv Yahoo-KeyStats.csv  Yahoo-AnalystOpinion.csv/ ;
+
+mergeTheFiles(\@arrFiles, $outputFileName);
 
 
-my %joined;
-my @headersARR;
-for my $file ( qw/Yahoo-KeyStats.csv Yahoo-IndustryInfo.csv Yahoo-AnalystOpinion.csv/ ) {
-    readfile( $file, \%joined, \@headersARR);
+sub mergeTheFiles{
+    my ($fileref, $outName) = @_;
+    my %joined;
+    my @headersARR;
+    for my $file (@$fileref) {
+        readfile( $file, \%joined, \@headersARR);
+    }
 
+    writefile($outName, \%joined, \@headersARR)
 }
 
 
@@ -31,15 +38,16 @@ sub readfile {
     close $fh;
 }
 
+sub writefile {
+    my ( $filename, $hashref, $arrayref ) = @_;
+    open my $fh, ">", $filename or die "Cannot Open:$filename!\n";
 
-open my $fh, ">", $outputFileName or die "Cannot Open:$outputFileName!\n";
+    print $fh "ID,", join( ",", @$arrayref ), "\n";
+    for my $id ( sort keys %$hashref ) {
+                print $fh "$id,";
+                print $fh join ",", map { $$hashref{$id}{$_} // "-+-" } @$arrayref;
+                print $fh "\n";
+    }
 
-print $fh "ID,", join( ",", @headersARR ), "\n";
-for my $id ( sort keys %joined ) {
-            print $fh "$id,";
-            print $fh join ",", map { $joined{$id}{$_} // "-+-" } @headersARR;
-            print $fh "\n";
+    close $fh;
 }
-
-close $fh;
-
