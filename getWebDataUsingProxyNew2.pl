@@ -75,20 +75,20 @@ sub getProxyURLsForUse{
     }
     my $count = keys %proxyURLs;
     if ($count < 5){
-    $sql = "select proxyURL,  currPeriod_cummulative_good, currPeriod_cummulative_bad,
+        $sql = "select proxyURL,  currPeriod_cummulative_good, currPeriod_cummulative_bad,
             (currPeriod_good / (currPeriod_bad+currPeriod_good)) as SuccessRatio,
             (currPeriod_total_seconds / (currPeriod_bad+currPeriod_good)) as AvgSecs
-            from proxy where currPeriod_good > 0 order by SuccessRatio";
-    }
-    
-    ##FixMe: If there are still arent enough.. pull based on priorPeriod
-    $arr_ref = getDataFromDatabaseReturnAoH($dbh, $sql);
-    foreach my $row (@$arr_ref) {
-        my $proxyURL = $row->{proxyURL};
-        my @array = ($row->{currPeriod_cummulative_good}, $row->{currPeriod_cummulative_bad}, $row->{AvgSecs});
-        $proxyURLs{$proxyURL}= [@array];
-        ##print "$proxyURL\t$row->{AvgSecs}\t$row->{SuccessRatio}\n";
-    }
+            from proxy where currPeriod_good > 0 order by SuccessRatio Desc LIMIT 0, 10";
+
+        ##FixMe: If there are still arent enough.. pull based on priorPeriod
+        $arr_ref = getDataFromDatabaseReturnAoH($dbh, $sql);
+        foreach my $row (@$arr_ref) {
+            my $proxyURL = $row->{proxyURL};
+            my @array = ($row->{currPeriod_cummulative_good}, $row->{currPeriod_cummulative_bad}, $row->{AvgSecs});
+            $proxyURLs{$proxyURL}= [@array];
+            ##print "$proxyURL\t$row->{AvgSecs}\t$row->{SuccessRatio}\n";
+        } #End of FOR
+    } #End of IF
 
     return %proxyURLs;
 
@@ -260,6 +260,9 @@ sub NEWtestProxy{
 
     my $i=0;
     for ($i = 0; $i <= $attempts; $i++) {
+        my $t = localtime;
+        print "\nin NEWTestProxy $i $t totalSecs:$total_seconds\n";
+
         my $now = time;
         ($success,$content) = getWebPageDetail($url,$timeout,$proxyURL);
         ### STUB for testing
