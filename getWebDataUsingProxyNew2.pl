@@ -26,7 +26,7 @@ sub initialize{
 }
 
 
-##################################################################################
+################################################################################
 sub addProxysThenTestNewlyAdded{
     my $dbh = shift @_;
     getProxyURLsAndSaveToDatabase(9990,1,0,1,$dbh); #maxProxies, SkipFile, SkipWeb, SkipTemp
@@ -500,7 +500,7 @@ sub saveStats {
             currPeriod_cummulative_bad = $cummulative_bad
             where proxyURL = '$proxyURL' ";
     my $affected_rows = actionQueryForDatabase($dbh, $sql);
-    print "update $affected_rows row.. with results from the test\n";
+    print "\nUpdate $affected_rows row.. with results from the test\n";
 
 }
 
