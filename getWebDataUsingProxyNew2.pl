@@ -30,7 +30,8 @@ sub initialize{
 sub addProxysThenTestNewlyAdded{
     my $dbh = shift @_;
     getProxyURLsAndSaveToDatabase(9990,1,0,1,$dbh); #maxProxies, SkipFile, SkipWeb, SkipTemp
-    test($dbh, 0);
+    my %proxyURL = getProxysToTest($dbh, 0); ##0 = only test newly added
+    testProxyURLs($dbh, \%proxyURL);
 
 }
 
@@ -38,9 +39,21 @@ sub addProxysThenTestNewlyAdded{
 sub addProxysThenTestAll{
     my $dbh = shift @_;
     getProxyURLsAndSaveToDatabase(9990,0,1,1,$dbh);
-    test($dbh, 1);
+    my %proxyURL = getProxysToTest($dbh, 0); ##0 = only test newly added
+    testProxyURLs($dbh, \%proxyURL);
 }
 
+####################################################################################
+sub testNewProxys{
+    my $dbh = shift @_;
+    my %proxyURL = getProxysToTest($dbh, 0); ##0 = only test newly added
+    testProxyURLs($dbh, \%proxyURL);
+}
+sub testAllProxys{
+    my $dbh = shift @_;
+    my %proxyURL = getProxysToTest($dbh, 1); ##0 = only test newly added
+    testProxyURLs($dbh, \%proxyURL);
+}
 ####################################################################################
 sub getSingleProxyURL{
     my $dbh = shift @_;
@@ -99,7 +112,20 @@ sub getProxyURLsForUse{
 
 
 ####################################################################################
-sub test{
+sub testProxyURLs{
+    my $dbh = shift @_;
+    my $proxyURLsRef = shift @_;
+
+    ###my $count = keys %proxyURLs;
+    my $count = keys $proxyURLsRef;
+
+    print "Getting ready to test $count proxies... testing starting now!!\n";
+    NEWtestProxyURLs($proxyURLsRef, $dbh);
+
+}
+
+####################################################################################
+sub getProxysToTest{
     my $dbh = shift @_;
     my $testAll = shift @_;
 
@@ -114,13 +140,9 @@ sub test{
         my $proxyURL = $row->{proxyURL};
         $proxyURLs{$proxyURL}=0;
     }
-    #FixMe: Split the URLs into 6 (?) different groups and run 6 threads concurrently
-    my $count = keys %proxyURLs;
-    print "Retrieved $count proxies from the database... now starting the testing process \n";
-    NEWtestProxyURLs(\%proxyURLs, $dbh);
+    return %proxyURLs;
 
 }
-
 
 ####################################################################################
 sub getProxyURLsAndSaveToDatabase{
@@ -224,7 +246,10 @@ sub NEWtestProxyURLs{
         print "$proxyURL -> GOOD:$total_good, BAD:$total_bad, SECS:$total_seconds, CUMM_GOOD:$cummulative_good, CUMM_BAD:$cummulative_bad \n";
 
         ### Move CurrPeriod to Prior Period
-        $sql = "update proxy set prevPeriod_good = prevPeriod_good + currPeriod_good where proxyURL = '$proxyURL'";
+        $sql = "update proxy set
+                prevPeriod_good = prevPeriod_good + currPeriod_good,
+                prevPeriod_bad  = prevPeriod_bad  + currPeriod_bad
+                where proxyURL = '$proxyURL'";
         $affected_rows = actionQueryForDatabase($dbh, $sql);
         print "update $affected_rows row.. moving currPeriod to priorPeriod\n";
 
@@ -261,7 +286,7 @@ sub NEWtestProxy{
     my $i=0;
     for ($i = 0; $i <= $attempts; $i++) {
         my $t = localtime;
-        print "\nin NEWTestProxy $i $t totalSecs:$total_seconds\n";
+        #print "\nin NEWTestProxy $i $t totalSecs:$total_seconds\n";
 
         my $now = time;
         ($success,$content) = getWebPageDetail($url,$timeout,$proxyURL);
@@ -394,7 +419,9 @@ sub getProxysFromWeb {
             }
 		}
 	}
-    print "Retrieved " . @$ref . " proxies from the web.  $metCriteria met the latency criteria. $added were added to hash (the rest already existed, or they were dups)\n";
+    print "Retrieved " . @$ref . " proxies from the web.  $metCriteria met the latency criteria.\n";
+    print "After removing duplicates there were: $added. \n";
+    print "Next we'll compare these to the database and add any that are missing\n";
 
     #####print Dumper(%junkHash);
 }
