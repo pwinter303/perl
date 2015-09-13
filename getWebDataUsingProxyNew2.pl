@@ -10,7 +10,6 @@ use Config::Simple;
 
 require "db.pl";
 
-
 ###my $dbh = initialize();
 ###addProxysThenTestNewlyAdded($dbh);
 #getProxyURLsForUse($dbh);
@@ -18,9 +17,10 @@ require "db.pl";
 ###getProxyURLsAndSaveToDatabase(999,0,1,1,$dbh);
 
 ##################################################################################
-sub initialize{
+sub getProxyDBH{
+    my $configFile = shift @_;
     my %Config;
-    Config::Simple->import_from('db.config', \%Config);
+    Config::Simple->import_from($configFile, \%Config);
     my $dbh = connectToDatabase(%Config);
     return $dbh;
 }
@@ -453,22 +453,23 @@ sub getZeeWebPage{
     
     
     until ($success){
-        $proxiesTried++;
-        if ($proxiesTried > 2){
-            #### HACK HACK HACK  FixMe: Call w/o Proxy... so at least data is retreieved
+        if ($proxiesTried > 3){
+            #### Call w/o Proxy... so at least data is retreieved
+            print "\n\nWARNING:Calling without proxy\n";
             ($success,$content) = getWebPageDetail($url,$timeout,'');  ### set proxyURL to '' to force call w/o proxy
-            #$success = 1;
-            #$content = "bad URL? tried more than a dozen times to access it but no good\n";
+            print "url:$url\tSuccess:$success\n";
             last;
         }
         my $proxyURL = getSingleProxyURL($dbh);
+        $proxiesTried++;
         #####print "this is the proxyURL: $proxyURL";
         #####print "url:$url\tproxy:$proxyURL\tSuccess:$success\tAttempts:$i\n";
-        for ($i = 0; $i <= $attempts; $i++) {
+        for ($i = 1; $i <= $attempts; $i++) {
             my $now = time;
             ($success,$content) = getWebPageDetail($url,$timeout,$proxyURL);
             my $seconds = time - $now;
             $total_seconds += $seconds;
+            print "url:$url\tproxy:$proxyURL\tSuccess:$success\tAttempts:$i\n";
             if ($success) {
                 $total_good++;
                 $cummulative_bad = 0;
@@ -480,8 +481,6 @@ sub getZeeWebPage{
                 $cummulative_good = 0;
                 $cummulative_bad++;
             }
-            print "\nurl:$url\tproxy:$proxyURL\tSuccess:$success\tAttempts:$i\n";
-            #print "$proxyURL -> GOOD:$total_good, BAD:$total_bad, SECS:$total_seconds, CUMM_GOOD:$cummulative_good, CUMM_BAD:$cummulative_bad \n";
         } #end of For LOOP
     ## save proxy stats
     saveStats($dbh, $proxyURL, $total_good, $total_bad, $total_seconds, $cummulative_good, $cummulative_bad);
@@ -530,7 +529,7 @@ sub saveStats {
             currPeriod_cummulative_bad = $cummulative_bad
             where proxyURL = '$proxyURL' ";
     my $affected_rows = actionQueryForDatabase($dbh, $sql);
-    print "\nUpdate $affected_rows row.. with results from the test\n";
+    print "Updated Proxy Table: $affected_rows record updated with results\n\n";
 
 }
 
